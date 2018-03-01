@@ -10,50 +10,58 @@ import com.google.api.client.util.Charsets;
 import com.google.common.io.Resources;
 import no.octopod.aidimporter.util.SessionManager;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.util.*;
 
-public class App {
+public class AdvertisementIdImporter {
     private static SelectorBuilder builder = new SelectorBuilder();
 
     public static void main(String[] args) {
-        if (args.length != 2) {
-            throw new IllegalArgumentException("Invalid syntax.\nUsage: <fileName> <listName>");
+        if (args.length != 3) {
+            throw new IllegalArgumentException("Invalid syntax.\nUsage: <customerId> <fileName> <listName>");
         }
 
         Set<String> audience;
         try {
-            String csv = Resources.toString(Resources.getResource(args[0]), Charsets.UTF_8);
-            audience = new HashSet<>(Arrays.asList(csv.split("\\r?\\n")));
+            List<String> csv = Files.readAllLines(Paths.get(args[1]), Charsets.UTF_8);
+            audience = new HashSet<>(csv);
         } catch (IOException e) {
             throw new IllegalArgumentException("Could not find segment at given path.");
         }
 
-        Set<String> existingIds;
+        Set<String> existingIds = new HashSet<>();
+
         try {
-            String existing = Resources.toString(Resources.getResource("existing.csv"), Charsets.UTF_8);
-            existingIds = new HashSet<>(Arrays.asList(existing.split("\\r?\\n")));
+            File f = new File("existing.csv");
+            if (f.exists()) {
+                List<String> existing = Files.readAllLines(Paths.get("existing.csv"), Charsets.UTF_8);
+                existingIds = new HashSet<>(existing);
+            } else {
+                f.createNewFile();
+            }
         } catch (IOException e) {
-            throw new RuntimeException("existing.csv missing from class path");
+            throw new RuntimeException("failed to create existing.csv");
         }
 
         // remove ids already written to audience
         audience.removeAll(existingIds);
 
-        String cID = "250-493-2376";
-        AdWordsSession session = SessionManager.createSession(cID);
+        AdWordsSession session = SessionManager.createSession(args[0]);
 
         boolean success = false;
         if (audience.size() > 0) {
-            success = insertAudience(session, new ArrayList<>(audience), args[1]);
+            success = insertAudience(session, new ArrayList<>(audience), args[2]);
         } else {
             System.out.println("No new advertisement ID's.");
         }
 
         if (success) {
-            try (FileWriter fw = new FileWriter(Resources.getResource("existing.csv").getPath(), true)) {
+            try (FileWriter fw = new FileWriter("existing.csv", true)) {
                 for (String line : audience) {
                     fw.write(line + "\n");
                 }
