@@ -26,6 +26,7 @@ public class AdvertisementIdImporter {
             throw new IllegalArgumentException("Invalid syntax.\nUsage: <customerId> <fileName> <listName>");
         }
 
+
         Set<String> audience;
         try {
             List<String> csv = Files.readAllLines(Paths.get(args[1]), Charsets.UTF_8);
@@ -34,18 +35,20 @@ public class AdvertisementIdImporter {
             throw new IllegalArgumentException("Could not find segment at given path.");
         }
 
-        Set<String> existingIds = new HashSet<>();
 
+        Set<String> existingIds = new HashSet<>();
         try {
-            File f = new File("existing.csv");
+            File f = new File("imported/" + args[2].toLowerCase() + ".csv");
             if (f.exists()) {
-                List<String> existing = Files.readAllLines(Paths.get("existing.csv"), Charsets.UTF_8);
+                List<String> existing = Files.readAllLines(
+                        Paths.get("imported/"+ args[2].toLowerCase() + ".csv"), Charsets.UTF_8);
                 existingIds = new HashSet<>(existing);
             } else {
+                f.getParentFile().mkdirs();
                 f.createNewFile();
             }
         } catch (IOException e) {
-            throw new RuntimeException("failed to create existing.csv");
+            throw new RuntimeException("failed to create imported file");
         }
 
         // remove ids already written to audience
@@ -61,7 +64,7 @@ public class AdvertisementIdImporter {
         }
 
         if (success) {
-            try (FileWriter fw = new FileWriter("existing.csv", true)) {
+            try (FileWriter fw = new FileWriter("imported/" + args[2].toLowerCase() + ".csv", true)) {
                 for (String line : audience) {
                     fw.write(line + "\n");
                 }
