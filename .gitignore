@@ -88,3 +88,4 @@ fabric.properties
 
 # Project Specific
 ads.properties
+src/main/resources/ads.properties
