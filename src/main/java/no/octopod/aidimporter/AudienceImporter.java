@@ -9,19 +9,36 @@ import com.google.api.ads.adwords.lib.factory.AdWordsServicesInterface;
 import java.rmi.RemoteException;
 import java.util.*;
 
-public class AdvertisementIdImporter {
+/**
+ * Class for importing any type of Audience to a CrmBasedUserList.
+ */
+public class AudienceImporter {
     private SelectorBuilder builder = new SelectorBuilder();
 
+    /**
+     * Inserts a list of audience to given UserList.
+     * UserList is created if it does not exist.
+     * @param session Client session to import the Audience to
+     * @param audience The audience to be imported to UserList
+     * @param userListName Name of UserList to import to
+     * @return Insertion success
+     */
     public boolean insertAudience(AdWordsSession session, List<String> audience, String userListName) {
 
         AdWordsServicesInterface awServices = AdWordsServices.getInstance();
         AdwordsUserListServiceInterface ulService =
                 awServices.get(session, AdwordsUserListServiceInterface.class);
 
+        // Get the user list ID
+        Long userListId = getUserListIdByName(userListName, session);
+        if (userListId < 0) {
+            userListId = createUserList(userListName, session);
+        }
+
         // Create an operation to edit a UserList with a given ID
         MutateMembersOperation mutateMembersOperation = new MutateMembersOperation();
         MutateMembersOperand mutateMembersOperand = new MutateMembersOperand();
-        mutateMembersOperand.setUserListId(getUserListIdByName(userListName, session));
+        mutateMembersOperand.setUserListId(userListId);
 
         List<Member> members = new ArrayList<>(audience.size());
 
@@ -44,6 +61,7 @@ public class AdvertisementIdImporter {
             mutateResult = ulService.mutateMembers(new MutateMembersOperation[] {mutateMembersOperation});
         } catch (RemoteException e) {
             System.err.println("Something went wrong while inserting audience.");
+            System.err.print(e.getMessage());
             return false;
         }
 
@@ -56,6 +74,13 @@ public class AdvertisementIdImporter {
     }
 
 
+    /**
+     * Get the ID of a UserList.
+     * If multiple found, it returns the first one found.
+     * @param name UserList name
+     * @param session Client session to look for UserList
+     * @return Long containing ID if found. Returns -1L if not found.
+     */
     public Long getUserListIdByName(String name, AdWordsSession session) {
         AdwordsUserListServiceInterface userListService =
                 AdWordsServices.getInstance().get(session, AdwordsUserListServiceInterface.class);
@@ -81,13 +106,16 @@ public class AdvertisementIdImporter {
             }
         }
 
-        if (id == -1L) {
-            return createUserList(name, session);
-        } else {
-            return id;
-        }
+        return id;
     }
 
+
+    /**
+     * Creates a new UserList with given name.
+     * @param name UserList name
+     * @param session Client session to create UserList in
+     * @return ID of created UserList
+     */
     public Long createUserList(String name, AdWordsSession session) {
         AdwordsUserListServiceInterface userListService =
                 AdWordsServices.getInstance().get(session, AdwordsUserListServiceInterface.class);
@@ -110,6 +138,5 @@ public class AdvertisementIdImporter {
         }
 
         return result.getValue(0).getId();
-
     }
 }

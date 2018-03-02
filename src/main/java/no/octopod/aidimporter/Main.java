@@ -49,7 +49,7 @@ public class Main {
 
         boolean success = false;
         AdWordsSession session = SessionManager.createSession(args[0]);
-        AdvertisementIdImporter importer = new AdvertisementIdImporter();
+        AudienceImporter importer = new AudienceImporter();
 
         if (audience.size() > 0) {
             success = importer.insertAudience(session, new ArrayList<>(audience), args[2]);
