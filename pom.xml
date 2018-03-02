@@ -25,7 +25,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>no.octopod.aidimporter.AdvertisementIdImporter</mainClass>
+                            <mainClass>no.octopod.aidimporter.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
