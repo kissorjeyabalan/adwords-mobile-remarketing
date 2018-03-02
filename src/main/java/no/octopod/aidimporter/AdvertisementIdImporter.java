@@ -6,76 +6,13 @@ import com.google.api.ads.adwords.axis.v201705.cm.*;
 import com.google.api.ads.adwords.axis.v201705.rm.*;
 import com.google.api.ads.adwords.lib.client.AdWordsSession;
 import com.google.api.ads.adwords.lib.factory.AdWordsServicesInterface;
-import com.google.api.client.util.Charsets;
-import com.google.common.io.Resources;
-import no.octopod.aidimporter.util.SessionManager;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.rmi.RemoteException;
 import java.util.*;
 
 public class AdvertisementIdImporter {
-    private static SelectorBuilder builder = new SelectorBuilder();
+    private SelectorBuilder builder = new SelectorBuilder();
 
-    public static void main(String[] args) {
-        if (args.length != 3) {
-            throw new IllegalArgumentException("Invalid syntax.\nUsage: <customerId> <fileName> <listName>");
-        }
-
-
-        Set<String> audience;
-        try {
-            List<String> csv = Files.readAllLines(Paths.get(args[1]), Charsets.UTF_8);
-            audience = new HashSet<>(csv);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Could not find segment at given path.");
-        }
-
-
-        Set<String> existingIds = new HashSet<>();
-        try {
-            File f = new File("imported/" + args[2].toLowerCase() + ".csv");
-            if (f.exists()) {
-                List<String> existing = Files.readAllLines(
-                        Paths.get("imported/"+ args[2].toLowerCase() + ".csv"), Charsets.UTF_8);
-                existingIds = new HashSet<>(existing);
-            } else {
-                f.getParentFile().mkdirs();
-                f.createNewFile();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("failed to create imported file");
-        }
-
-        // remove ids already written to audience
-        audience.removeAll(existingIds);
-
-        AdWordsSession session = SessionManager.createSession(args[0]);
-
-        boolean success = false;
-        if (audience.size() > 0) {
-            success = insertAudience(session, new ArrayList<>(audience), args[2]);
-        } else {
-            System.out.println("No new advertisement ID's.");
-        }
-
-        if (success) {
-            try (FileWriter fw = new FileWriter("imported/" + args[2].toLowerCase() + ".csv", true)) {
-                for (String line : audience) {
-                    fw.write(line + "\n");
-                }
-            } catch (IOException e) {
-                System.err.println("Failed to write inserted ID's to existing.csv");
-            }
-        }
-
-    }
-
-    private static boolean insertAudience(AdWordsSession session, List<String> audience, String userListName) {
+    public boolean insertAudience(AdWordsSession session, List<String> audience, String userListName) {
 
         AdWordsServicesInterface awServices = AdWordsServices.getInstance();
         AdwordsUserListServiceInterface ulService =
@@ -90,9 +27,8 @@ public class AdvertisementIdImporter {
 
         // Insert the IDFA/AAID into a new Member object
         for (String uuid : audience) {
-            String normalizedMobileId = uuid.trim().toLowerCase();
             Member member = new Member();
-            member.setMobileId(normalizedMobileId);
+            member.setMobileId(uuid);
             members.add(member);
         }
 
@@ -120,7 +56,7 @@ public class AdvertisementIdImporter {
     }
 
 
-    private static Long getUserListIdByName(String name, AdWordsSession session) {
+    public Long getUserListIdByName(String name, AdWordsSession session) {
         AdwordsUserListServiceInterface userListService =
                 AdWordsServices.getInstance().get(session, AdwordsUserListServiceInterface.class);
 
@@ -152,7 +88,7 @@ public class AdvertisementIdImporter {
         }
     }
 
-    private static Long createUserList(String name, AdWordsSession session) {
+    public Long createUserList(String name, AdWordsSession session) {
         AdwordsUserListServiceInterface userListService =
                 AdWordsServices.getInstance().get(session, AdwordsUserListServiceInterface.class);
 
